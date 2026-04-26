@@ -1,0 +1,1841 @@
+import { useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from "react";
+
+function getDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getYesterdayDateKey() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return getDateKey(date);
+}
+
+type MainTab = "home" | "track" | "journal" | "support" | "account";
+type SubPage =
+  | null
+  | "supportInfo"
+  | "thoughts"
+  | "nutrition"
+  | "activity"
+  | "why"
+  | "what"
+  | "how"
+  | "quickHelp";
+
+type AccountPage =
+  | null
+  | "favourites"
+  | "history"
+  | "editProfile"
+  | "settings"
+  | "security"
+  | "reportProblem"
+  | "accountStatus"
+  | "reportsViolations"
+  | "journalInsights"
+  | "changePassword"
+  | "twoFactor"
+  | "verificationSelfie"
+  | "savedLogin"
+  | "loggedInDevices"
+  | "recentEmails"
+  | "securityCheckup";
+
+type Question = {
+  key: string;
+  label: string;
+};
+
+function HomeIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 10.5L12 3l9 7.5" />
+      <path d="M5.5 9.5V21h13V9.5" />
+    </svg>
+  );
+}
+
+function JournalIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 3.5h10a3 3 0 0 1 3 3v14H8a3 3 0 0 0-3 3z" />
+      <path d="M8 20.5V6.5a3 3 0 0 1 3-3" />
+      <path d="M10.5 8.5h4.5" />
+      <path d="M10.5 12h4.5" />
+    </svg>
+  );
+}
+
+function ResourcesIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4.5 4.5" />
+    </svg>
+  );
+}
+
+function AccountIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c1.5-4 14.5-4 16 0" />
+    </svg>
+  );
+}
+
+function TrackIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeDasharray="3 3"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M3 18 C6 10, 10 14, 14 8 S20 10, 21 5" />
+    </svg>
+  );
+}
+
+function FrameHeader({
+  title,
+  dark = false,
+}: {
+  title: string;
+  dark?: boolean;
+}) {
+  return (
+    <div
+      className={`${dark ? "bg-[#5a3e36] text-white" : "bg-[#EFD4CA] text-[#5a3e36]"} px-4 pb-5 pt-4`}
+    >
+      <div className="mb-2 flex items-center justify-between text-[11px] font-medium">
+        <span>07:00</span>
+        <div className="flex items-center gap-2">
+          <span>◠</span>
+          <span>▮▮▮</span>
+        </div>
+      </div>
+      <h1 className="text-center text-[2rem] font-semibold tracking-wide">{title}</h1>
+    </div>
+  );
+}
+
+function BackgroundBlobs() {
+  return (
+    <div className="absolute inset-0">
+      <div className="h-full w-full bg-gradient-to-br from-[#EFD4CA] via-[#F4EBE2] to-[#EFD4CA]" />
+      <div className="absolute left-6 top-6 h-20 w-20 rounded-full bg-[#5a3e36]/10 blur-2xl" />
+      <div className="absolute right-8 bottom-6 h-24 w-24 rounded-full bg-[#5a3e36]/10 blur-2xl" />
+      <div className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/20 blur-xl" />
+    </div>
+  );
+}
+
+function InfoPage({
+  title,
+  body,
+  onBack,
+}: {
+  title: string;
+  body: ReactNode;
+  onBack: () => void;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <BackgroundBlobs />
+      <div className="relative z-10">
+        <FrameHeader title={title} dark />
+        <div className="px-4 py-5">
+          <div className="space-y-4 rounded-[22px] bg-[#FFFCF8] p-5 text-[#5a3e36] shadow">
+            {body}
+            <button
+              onClick={onBack}
+              className="mt-2 w-full rounded-xl bg-[#5a3e36] py-2 text-white transition active:scale-95"
+              type="button"
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function WellbeingAppPrototype() {
+  // --- Simple Sign-in state ---
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+
+  const handleSignIn = () => {
+    if (!emailInput.trim() || !passwordInput.trim()) return;
+
+    localStorage.setItem("isSignedIn", "true");
+    localStorage.setItem("userEmail", emailInput);
+    setUserName(emailInput.split("@")[0]);
+    setIsSignedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("isSignedIn");
+    localStorage.removeItem("userName");
+    setIsSignedIn(false);
+    setUserName("");
+    setNameInput("");
+  };
+  const [tab, setTab] = useState<MainTab>("home");
+  const [subPage, setSubPage] = useState<SubPage>(null);
+  const [accountPage, setAccountPage] = useState<AccountPage>(null);
+  const [dayIndex, setDayIndex] = useState(3);
+  const [currentQuestionSet, setCurrentQuestionSet] = useState(0);
+  const [lastChoices, setLastChoices] = useState<string[]>([]);
+  const [checkin, setCheckin] = useState<Record<string, boolean>>(() => {
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem("trackDate");
+    const savedCheckin = localStorage.getItem("trackCheckin");
+    return savedDate === today && savedCheckin ? JSON.parse(savedCheckin) : {};
+  });
+  const [submitted, setSubmitted] = useState(() => {
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem("trackDate");
+    const savedSubmitted = localStorage.getItem("trackSubmitted");
+    return savedDate === today && savedSubmitted === "true";
+  });
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [streakCount, setStreakCount] = useState(() => {
+    const saved = localStorage.getItem("trackStreakCount");
+    return saved ? Number(saved) : 0;
+  });
+  const [lastStreakDate, setLastStreakDate] = useState(() => localStorage.getItem("lastStreakDate") || "");
+  const [completedDays, setCompletedDays] = useState<boolean[]>([
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+  ]);
+  const [topImage, setTopImage] = useState<string | null>(null);
+  const [bottomImage, setBottomImage] = useState<string | null>(null);
+  const [journalSubmitted, setJournalSubmitted] = useState(() => {
+  const today = new Date().toDateString();
+  const savedDate = localStorage.getItem("journalDate");
+  const savedCompleted = localStorage.getItem("journalCompleted");
+  return savedDate === today && savedCompleted === "true";
+});
+  const [journalQuoteIndex, setJournalQuoteIndex] = useState(0);
+  const [freeWriteText, setFreeWriteText] = useState(() => {
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem("journalDate");
+    return savedDate === today ? localStorage.getItem("freeWriteText") || "" : "";
+  });
+  const [dailyJournalText, setDailyJournalText] = useState("");
+  const [weeklyJournalText, setWeeklyJournalText] = useState("");
+
+  useEffect(() => {
+    const today = new Date().toDateString();
+    localStorage.setItem("trackDate", today);
+    localStorage.setItem("trackCheckin", JSON.stringify(checkin));
+    localStorage.setItem("trackSubmitted", submitted ? "true" : "false");
+  }, [checkin, submitted]);
+
+  useEffect(() => {
+    localStorage.setItem("trackStreakCount", String(streakCount));
+    if (lastStreakDate) {
+      localStorage.setItem("lastStreakDate", lastStreakDate);
+    } else {
+      localStorage.removeItem("lastStreakDate");
+    }
+  }, [streakCount, lastStreakDate]);
+
+  useEffect(() => {
+    const todayKey = getDateKey();
+    const yesterdayKey = getYesterdayDateKey();
+
+    if (lastStreakDate && lastStreakDate !== todayKey && lastStreakDate !== yesterdayKey) {
+      setStreakCount(0);
+      setLastStreakDate("");
+    }
+  }, [lastStreakDate]);
+
+  useEffect(() => {
+    const resetJournalIfNewDay = () => {
+      const today = new Date().toDateString();
+      const savedDate = localStorage.getItem("journalDate");
+
+      if (savedDate !== today) {
+        setJournalSubmitted(false);
+        setFreeWriteText("");
+        setDailyJournalText("");
+        setWeeklyJournalText("");
+        localStorage.removeItem("journalDate");
+        localStorage.removeItem("journalCompleted");
+        localStorage.removeItem("freeWriteText");
+      }
+    };
+
+    resetJournalIfNewDay();
+
+    const now = new Date();
+    const nextMidnight = new Date();
+    nextMidnight.setHours(24, 0, 0, 0);
+    const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+
+    const midnightTimeout = window.setTimeout(() => {
+      // Reset journal
+      setJournalSubmitted(false);
+      setFreeWriteText("");
+      setDailyJournalText("");
+      setWeeklyJournalText("");
+
+      // Reset check-in (TRACK PAGE)
+      if (!submitted) {
+        setStreakCount(0);
+        setLastStreakDate("");
+        localStorage.removeItem("trackStreakCount");
+        localStorage.removeItem("lastStreakDate");
+      }
+
+      setCheckin({});
+      setSubmitted(false);
+      localStorage.removeItem("trackDate");
+      localStorage.removeItem("trackCheckin");
+      localStorage.removeItem("trackSubmitted");
+    }, msUntilMidnight);
+
+    return () => window.clearTimeout(midnightTimeout);
+  }, []);
+
+  const handleUpload = (e: ChangeEvent<HTMLInputElement>, type: "top" | "bottom") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : null;
+      if (!result) return;
+      if (type === "top") setTopImage(result);
+      else setBottomImage(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const questionSets = useMemo<Question[][]>(
+    () => [
+      [
+        { key: "moved", label: "Moved my body" },
+        { key: "meals", label: "Ate regular meals" },
+        { key: "water", label: "Drank water" },
+        { key: "sleep", label: "Slept okay" },
+      ],
+      [
+        { key: "stretch", label: "Took a moment to stretch" },
+        { key: "snack", label: "Had a nourishing snack or meal" },
+        { key: "break", label: "Took a break when I needed one" },
+        { key: "kind", label: "Spoke kindly to myself" },
+      ],
+      [
+        { key: "outside", label: "Spent a little time outside" },
+        { key: "water2", label: "Checked in with my hydration" },
+        { key: "rest", label: "Let myself rest without guilt" },
+        { key: "breathe", label: "Paused and took a few deep breaths" },
+      ],
+    ],
+    []
+  );
+
+  const positiveMessages = useMemo(
+    () => [
+      "You showed up for yourself today 💛",
+      "Small steps still count, and today mattered 🌷",
+      "You cared for yourself today, and that is something to be proud of ✨",
+      "Progress can be gentle. You are doing better than you think 💕",
+    ],
+    []
+  );
+
+  const journalQuotes = useMemo(
+    () => [
+      "Be proud of every small step you take 🌷",
+      "Your body deserves kindness, care, and patience 💛",
+      "You are growing at your own pace, and that is enough ✨",
+      "Even on hard days, you are still doing beautifully 💕",
+    ],
+    []
+  );
+
+  const currentQuestions = questionSets[currentQuestionSet];
+
+  const openMainTab = (nextTab: MainTab) => {
+    setSubPage(null);
+    setAccountPage(null);
+    setTab(nextTab);
+  };
+
+  const toggleCheck = (key: string) => {
+    if (submitted) return;
+    setCheckin((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const submitCheckin = () => {
+    if (submitted) return;
+
+    const selectedKeys = Object.entries(checkin)
+      .filter(([, value]) => value)
+      .map(([key]) => key);
+
+    const todayKey = getDateKey();
+    const yesterdayKey = getYesterdayDateKey();
+
+    setLastChoices(selectedKeys);
+    setSubmitted(true);
+    localStorage.setItem("trackDate", new Date().toDateString());
+    localStorage.setItem("trackSubmitted", "true");
+    setMessageIndex((prev) => (prev + 1) % positiveMessages.length);
+
+    setStreakCount((prev) => {
+      if (lastStreakDate === todayKey) return prev;
+      if (lastStreakDate === yesterdayKey) return prev + 1;
+      return 1;
+    });
+    setLastStreakDate(todayKey);
+
+    setCompletedDays((prev) => {
+      const next = [...prev];
+      next[dayIndex] = true;
+      return dayIndex === 6 ? [false, false, false, false, false, false, false] : next;
+    });
+
+    setCurrentQuestionSet((prev) => {
+      if (
+        selectedKeys.includes("moved") ||
+        selectedKeys.includes("stretch") ||
+        selectedKeys.includes("outside")
+      ) {
+        return 1;
+      }
+      if (
+        selectedKeys.includes("meals") ||
+        selectedKeys.includes("snack") ||
+        selectedKeys.includes("water") ||
+        selectedKeys.includes("water2")
+      ) {
+        return 2;
+      }
+      return (prev + 1) % questionSets.length;
+    });
+
+    setDayIndex((prev) => (prev === 6 ? 0 : prev + 1));
+  };
+
+  const submitJournal = () => {
+    if (!dailyJournalText.trim() || !weeklyJournalText.trim()) return;
+
+    const today = new Date().toDateString();
+    localStorage.setItem("journalDate", today);
+    localStorage.setItem("journalCompleted", "true");
+    localStorage.setItem("freeWriteText", freeWriteText);
+
+    setJournalSubmitted(true);
+    setJournalQuoteIndex((prev) => (prev + 1) % journalQuotes.length);
+  };
+
+  const SignInScreen = () => (
+    <div className="relative overflow-hidden rounded-[26px] pb-10 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <BackgroundBlobs />
+
+      <div className="relative z-10">
+        <FrameHeader title={authMode === "login" ? "Login" : "Sign Up"} dark />
+
+        <div className="px-4 py-6">
+          <div className="rounded-[22px] bg-[#FFFCF8] p-6 text-[#5a3e36] shadow">
+            <h1 className="text-center text-xl font-semibold">
+              {authMode === "login" ? "Welcome back" : "Create your account"}
+            </h1>
+
+            <div className="mt-5 space-y-3">
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Email"
+                className="w-full rounded-xl border border-[#EFD4CA] bg-[#F4EBE2] px-4 py-3 outline-none"
+              />
+
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Password"
+                className="w-full rounded-xl border border-[#EFD4CA] bg-[#F4EBE2] px-4 py-3 outline-none"
+              />
+
+              {authMode === "signup" && (
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Name"
+                  className="w-full rounded-xl border border-[#EFD4CA] bg-[#F4EBE2] px-4 py-3 outline-none"
+                />
+              )}
+            </div>
+
+            <button
+              onClick={handleSignIn}
+              className="mt-5 w-full rounded-xl bg-[#5a3e36] py-3 text-white transition active:scale-95"
+              type="button"
+            >
+              {authMode === "login" ? "Login" : "Sign Up"}
+            </button>
+
+            <button
+              onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")}
+              className="mt-3 w-full text-sm text-[#5a3e36]"
+              type="button"
+            >
+              {authMode === "login" ? "Don't have an account? Sign Up" : "Already have an account? Login"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const HomeScreen = () => (
+    <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <BackgroundBlobs />
+      <div className="relative z-10">
+        <div className="bg-[#EFD4CA] px-4 pb-5 pt-4">
+          <div className="mb-3 flex items-center justify-between text-[11px] font-medium text-[#5a3e36]">
+            <span>07:00</span>
+            <div className="flex items-center gap-2">
+              <span>◠</span>
+              <span>▮▮▮</span>
+            </div>
+          </div>
+
+          <div className="relative h-44 w-full overflow-hidden rounded-b-[18px] bg-[linear-gradient(135deg,#8d6c62_0%,#b08b7f_55%,#8b6b61_100%)]">
+            {topImage ? (
+              <img src={topImage} alt="Home hero" className="h-full w-full object-cover" />
+            ) : null}
+            <label className="absolute bottom-3 left-3 cursor-pointer rounded-full bg-[#FFFCF8]/95 px-3 py-1 text-[11px] font-medium text-[#5a3e36] shadow transition active:scale-95">
+              Upload top image
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleUpload(e, "top")}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="px-4 py-5">
+          <div className="rounded-[12px] bg-[#5a3e36] px-4 py-4 text-white shadow-sm">
+            <p className="text-[20px] font-medium leading-tight">Hi {userName || "there"} 💛</p>
+            <p className="mt-1 text-[18px] leading-snug">
+              You are doing your best today, and that is enough.
+            </p>
+          </div>
+
+          <div className="mt-4 text-right">
+            <button
+              onClick={() => openMainTab("support")}
+              className="text-[14px] font-medium text-[#5a3e36]"
+              type="button"
+            >
+              Show All
+            </button>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-4">
+            {[
+              { label: "Why?", page: "why" as const },
+              { label: "What?", page: "what" as const },
+              { label: "How?", page: "how" as const },
+            ].map((button) => (
+              <button
+                key={button.label}
+                onClick={() => {
+                  setTab("support");
+                  setSubPage(button.page);
+                }}
+                className="flex h-24 items-center justify-center rounded-[12px] bg-[#5a3e36] text-[18px] font-medium text-white shadow-sm transition active:scale-95"
+                type="button"
+              >
+                {button.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 overflow-hidden rounded-[16px] bg-[#FFFCF8]/90 shadow backdrop-blur-sm">
+            <div className="relative h-44 w-full">
+              {bottomImage ? (
+                <img src={bottomImage} alt="Home feature" className="h-full w-full object-cover" />
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#f5eee9] via-[#f0e6df] to-[#eaded6]" />
+                  <div className="absolute left-4 right-4 top-3 text-center text-[#5a3e36]">
+                    <p className="text-[18px] font-semibold leading-tight">Time to put</p>
+                    <p className="-mt-1 text-[22px] font-semibold italic">yourself</p>
+                    <p className="-mt-1 text-[18px] font-semibold">first.</p>
+                  </div>
+                  <div className="absolute inset-x-0 bottom-3 flex items-end justify-center">
+                    <svg viewBox="0 0 220 120" className="h-28" aria-hidden="true">
+                      <circle cx="110" cy="60" r="48" fill="#ead4da" />
+                      <g stroke="#5a3e36" strokeWidth="3" fill="none" strokeLinecap="round">
+                        <circle cx="100" cy="38" r="6" fill="#5a3e36" />
+                        <path d="M100 44 L100 70" />
+                        <path d="M100 70 L122 82 L138 82" />
+                        <path d="M100 70 L80 86 L64 92" />
+                        <path d="M100 48 C95 34, 92 28, 90 22" />
+                        <path d="M100 48 C105 34, 108 28, 110 22" />
+                      </g>
+                    </svg>
+                  </div>
+                </>
+              )}
+              <label className="absolute bottom-3 left-3 cursor-pointer rounded-full bg-[#EFD4CA]/95 px-3 py-1 text-[11px] font-medium text-[#5a3e36] shadow transition active:scale-95">
+                Upload bottom image
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleUpload(e, "bottom")}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const TrackScreen = () => (
+    <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <BackgroundBlobs />
+      <div className="relative z-10">
+        <div className="bg-[#EFD4CA] px-4 pb-6 pt-4 text-[#5a3e36]">
+          <div className="mb-3 flex items-center justify-between text-[11px] font-medium">
+            <span>07:00</span>
+            <div className="flex items-center gap-2">
+              <span>◠</span>
+              <span>▮▮▮</span>
+            </div>
+          </div>
+          <div className="mt-2 text-center">
+            <div className="text-5xl">🔥</div>
+            <div className="text-5xl font-bold">{streakCount}</div>
+            <p className="text-sm">Day Streak</p>
+          </div>
+          <p className="mt-3 text-center text-sm">This is your longest streak yet! Keep going 💛</p>
+        </div>
+
+        <div className="space-y-5 px-4 py-5">
+          {!submitted ? (
+            <div className="rounded-[16px] bg-[#5a3e36] p-5 text-white">
+              <h2 className="mb-1 text-lg font-semibold">Today’s check-in</h2>
+              <p className="mb-4 text-xs text-white/80">
+                {lastChoices.length > 0
+                  ? "Your questions changed based on what you focused on last time."
+                  : "Answer a few gentle questions about today."}
+              </p>
+              {currentQuestions.map((item) => (
+                <div key={item.key} className="mb-3 flex items-center justify-between">
+                  <span className="text-sm">{item.label}</span>
+                  <button
+                    onClick={() => toggleCheck(item.key)}
+                    className="flex h-6 w-6 items-center justify-center border-2 border-white"
+                    type="button"
+                  >
+                    {checkin[item.key] ? "✓" : ""}
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={submitCheckin}
+                className="mt-2 w-full rounded-xl bg-white py-2 font-medium text-[#5a3e36]"
+                type="button"
+              >
+                Submit
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-[16px] bg-[#FFFCF8] p-5 text-center text-[#5a3e36] shadow">
+              <p className="mb-2 text-lg font-semibold">{positiveMessages[messageIndex]}</p>
+              <p className="text-sm">
+                Read the resources page for more support on how to manage how you feel.
+              </p>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => openMainTab("support")}
+                  className="flex-1 rounded-xl bg-[#5a3e36] px-4 py-2 text-white"
+                  type="button"
+                >
+                  Go to Resources
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-[16px] bg-[#EFD4CA] p-5">
+            <h2 className="mb-3 text-lg">This Week</h2>
+            <div className="grid grid-cols-5 gap-y-4 text-center">
+              {[
+                { label: "M", index: 0 },
+                { label: "T", index: 1 },
+                { label: "W", index: 2 },
+                { label: "T", index: 3 },
+                { label: "F", index: 4 },
+              ].map((day) => (
+                <div key={`${day.label}-${day.index}`}>
+                  <p>{day.label}</p>
+                  <div
+                    className={`mt-2 mx-auto flex h-12 w-12 items-center justify-center rounded-full text-xl ${
+                      completedDays[day.index]
+                        ? "bg-[#5a3e36] text-white"
+                        : "bg-[#F4EBE2] text-[#5a3e36]"
+                    }`}
+                  >
+                    {completedDays[day.index] ? "✓" : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 grid w-1/2 grid-cols-2 gap-y-4 text-center">
+              {[
+                { label: "S", index: 5 },
+                { label: "S", index: 6 },
+              ].map((day) => (
+                <div key={`${day.label}-${day.index}`}>
+                  <p>{day.label}</p>
+                  <div
+                    className={`mt-2 mx-auto flex h-12 w-12 items-center justify-center rounded-full text-xl ${
+                      completedDays[day.index]
+                        ? "bg-[#5a3e36] text-white"
+                        : "bg-[#F4EBE2] text-[#5a3e36]"
+                    }`}
+                  >
+                    {completedDays[day.index] ? "✓" : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const JournalScreen = () => (
+    <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <BackgroundBlobs />
+      <div className="relative z-10">
+        <FrameHeader title="Journal" dark />
+        <div className="space-y-5 px-4 py-5">
+          {!journalSubmitted ? (
+            <>
+              <div className="rounded-[22px] bg-[#EFD4CA] p-4 shadow-sm ring-1 ring-white/30">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[#5a3e36]">Today’s reflection</p>
+                    <p className="text-xs text-[#5a3e36]">Gentle prompts for body-kindness</p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4EBE2] text-lg shadow-inner">
+                    🍓
+                  </div>
+                </div>
+                {[
+                  "One thing my body helped me do today was...",
+                  "A kind sentence I would say to a friend is...",
+                  "How did I feel after moving my body today?",
+                ].map((prompt) => (
+                  <div
+                    key={prompt}
+                    className="mb-3 rounded-[18px] bg-[#F4EBE2] px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
+                  >
+                    {prompt}
+                  </div>
+                ))}
+                <div className="relative mt-2 overflow-hidden rounded-[18px] bg-[#F4EBE2] shadow-inner">
+                  <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-[#EFD4CA] px-2 py-1 text-[10px] font-medium text-[#5a3e36]">
+                    Daily note
+                  </div>
+                  <textarea
+                    value={dailyJournalText}
+                    onChange={(e) => setDailyJournalText(e.target.value)}
+                    placeholder="Write here..."
+                    className="min-h-[180px] w-full resize-none bg-transparent p-4 pt-12 text-[15px] outline-none placeholder:text-[#5a3e36]/70"
+                    rows={6}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[22px] bg-[#EFD4CA] p-4 shadow-sm ring-1 ring-white/30">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="rounded-full bg-[#F4EBE2] px-4 py-2 text-sm font-semibold text-[#5a3e36] shadow-sm">
+                    Weekly Reflection
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4EBE2] text-lg shadow-inner">
+                    ✨
+                  </div>
+                </div>
+                <div className="mb-3 rounded-[18px] bg-[#F4EBE2] px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+                  How did I feel this week?
+                </div>
+                <div className="relative overflow-hidden rounded-[18px] bg-[#F4EBE2] shadow-inner">
+                  <div className="pointer-events-none absolute left-4 top-3 text-[11px] font-medium uppercase tracking-[0.15em] text-[#5a3e36]/70">
+                    End of week reset
+                  </div>
+                  <textarea
+                    value={weeklyJournalText}
+                    onChange={(e) => setWeeklyJournalText(e.target.value)}
+                    placeholder="Notice patterns, wins, and what helped you feel more like yourself..."
+                    className="min-h-[210px] w-full resize-none bg-transparent p-4 pt-10 text-[15px] outline-none placeholder:text-[#5a3e36]/65"
+                    rows={7}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={submitJournal}
+                disabled={!dailyJournalText.trim() || !weeklyJournalText.trim()}
+                className="w-full rounded-xl bg-[#5a3e36] py-3 text-white shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+              >
+                Submit
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="rounded-[18px] bg-[#FFFCF8] p-5 text-center text-[#5a3e36] shadow">
+                <p className="text-lg font-semibold">Good job!</p>
+                <p className="mt-2 text-sm leading-6">{journalQuotes[journalQuoteIndex]}</p>
+              </div>
+
+              <div className="rounded-[22px] bg-[#EFD4CA] p-4 shadow-sm ring-1 ring-white/30">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[#5a3e36]">Free writing page</p>
+                    <p className="text-xs text-[#5a3e36]">
+                      Feel free to get everything off your chest here. It will be gone by tomorrow morning.
+                    </p>
+                  </div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4EBE2] text-lg shadow-inner">
+                    ✍️
+                  </div>
+                </div>
+                <div className="relative overflow-hidden rounded-[18px] bg-[#F4EBE2] shadow-inner">
+                  <textarea
+                    value={freeWriteText}
+                    onChange={(e) => {
+                      setFreeWriteText(e.target.value);
+                      localStorage.setItem("freeWriteText", e.target.value);
+                    }}
+                    placeholder="Write freely here..."
+                    className="min-h-[320px] w-full resize-none bg-transparent p-4 text-[15px] outline-none placeholder:text-[#5a3e36]/65"
+                    rows={10}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const SupportScreen = () => (
+    <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <BackgroundBlobs />
+      <div className="relative z-10">
+        <FrameHeader title="Resources" dark />
+        <div className="space-y-5 px-4 py-5">
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => setSubPage("supportInfo")}
+              className="rounded-[12px] bg-[#5a3e36] px-6 py-2 text-[14px] font-semibold text-white shadow-sm transition active:scale-95"
+              type="button"
+            >
+              Support
+            </button>
+            <button
+              onClick={() => setSubPage("quickHelp")}
+              className="rounded-[12px] bg-[#5a3e36] px-6 py-2 text-[14px] font-semibold text-white shadow-sm transition active:scale-95"
+              type="button"
+            >
+              Quick Help
+            </button>
+          </div>
+
+          <div className="rounded-[22px] bg-[#EFD4CA] p-4 shadow-sm ring-1 ring-white/30">
+            <div className="rounded-[18px] text-[14px] leading-7 text-[#5a3e36]">
+              <p>
+                This resources page has been designed to support users in developing a healthier and more balanced relationship with their body, food, and movement. While the app encourages self-reflection, positive habits, and emotional awareness, it is important to recognise that some challenges may require additional support beyond what an app can provide.
+              </p>
+              <br />
+              <p>
+                Body image concerns, negative self-talk, and stress around food or exercise can be influenced by a range of factors including social pressures, media exposure, and personal experiences. This page provides reliable, supportive information and strategies to help users better understand these influences and respond in a healthier way.
+              </p>
+              <br />
+              <p>
+                It is also important to acknowledge that seeking help is a strength, not a weakness. If a user is feeling overwhelmed, stuck, or unable to cope, reaching out to a trusted person or professional can provide guidance, reassurance, and support. This app aims to complement, not replace, real-world support systems.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 px-6">
+            <button
+              onClick={() => setSubPage("thoughts")}
+              className="flex min-h-[108px] items-center justify-center rounded-[18px] bg-[#F4EBE2] px-3 text-center text-[16px] font-semibold leading-6 text-[#5a3e36] shadow-sm transition active:scale-95"
+              type="button"
+            >
+              Thoughts
+            </button>
+            <button
+              onClick={() => setSubPage("nutrition")}
+              className="flex min-h-[108px] items-center justify-center rounded-[18px] bg-[#5a3e36] px-3 text-center text-[16px] font-semibold leading-6 text-white shadow-sm transition active:scale-95"
+              type="button"
+            >
+              Nutrition
+            </button>
+            <button
+              onClick={() => setSubPage("activity")}
+              className="flex min-h-[108px] items-center justify-center rounded-[18px] bg-[#F4EBE2] px-3 text-center text-[16px] font-semibold leading-6 text-[#5a3e36] shadow-sm transition active:scale-95"
+              type="button"
+            >
+              Physical
+              <br />
+              Activity
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 px-4 pb-2">
+            <button
+              onClick={() => setSubPage("why")}
+              className="flex min-h-[108px] items-center justify-center rounded-[18px] bg-[#5a3e36] px-3 text-center text-[18px] font-semibold text-white shadow-sm transition active:scale-95"
+              type="button"
+            >
+              Why?
+            </button>
+            <button
+              onClick={() => setSubPage("what")}
+              className="flex min-h-[108px] items-center justify-center rounded-[18px] bg-[#F4EBE2] px-3 text-center text-[18px] font-semibold text-[#5a3e36] shadow-sm transition active:scale-95"
+              type="button"
+            >
+              What?
+            </button>
+            <button
+              onClick={() => setSubPage("how")}
+              className="flex min-h-[108px] items-center justify-center rounded-[18px] bg-[#5a3e36] px-3 text-center text-[18px] font-semibold text-white shadow-sm transition active:scale-95"
+              type="button"
+            >
+              How?
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderScreen = () => {
+    if (subPage === "supportInfo") {
+      return (
+        <InfoPage
+          title="Support"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <h2 className="text-center text-xl font-bold">You do not have to do this alone</h2>
+              <p className="text-sm text-stone-600">
+                While self-help strategies can be beneficial, additional support may be needed in
+                some situations. Speaking to someone can provide reassurance, guidance, and
+                professional care.
+              </p>
+              <div className="text-sm text-stone-700">
+                <p className="font-semibold text-[#5a3e36]">Users are encouraged to reach out to:</p>
+                <ul className="ml-5 mt-2 list-disc space-y-1">
+                  <li>A trusted adult (parent, teacher, coach)</li>
+                  <li>A school counsellor</li>
+                  <li>A general practitioner (GP)</li>
+                </ul>
+              </div>
+              <div className="text-sm text-stone-700">
+                <p className="font-semibold text-[#5a3e36]">Professional support services include:</p>
+                <div className="mt-3 space-y-3 text-sm text-stone-700">
+                  <div className="rounded-[16px] bg-[#F8F1EB] p-3">
+                    <p className="font-semibold text-[#5a3e36]">🦋 Butterfly Foundation</p>
+                    <p>Phone: 1800 33 4673 (1800 ED HOPE)</p>
+                    <p>Email: support@butterfly.org.au</p>
+                    <p>What they do: Support for eating disorders and body image concerns</p>
+                  </div>
+                  <div className="rounded-[16px] bg-[#F8F1EB] p-3">
+                    <p className="font-semibold text-[#5a3e36]">🧠 Headspace</p>
+                    <p>Phone: 1800 650 890</p>
+                    <p>Online support: via their website (eheadspace)</p>
+                    <p>What they do: Mental health, wellbeing, and counselling for young people</p>
+                  </div>
+                  <div className="rounded-[16px] bg-[#F8F1EB] p-3">
+                    <p className="font-semibold text-[#5a3e36]">💬 Kids Helpline</p>
+                    <p>Phone: 1800 55 1800 (24/7 free service)</p>
+                    <p>Email/Webchat: Available through their website</p>
+                    <p>What they do: Confidential counselling for young people aged 5–25</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (subPage === "thoughts") {
+      return (
+        <InfoPage
+          title="Thoughts"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#EFD4CA] text-xl shadow-inner">
+                    🧠
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold leading-tight">Be kinder to your mind</h2>
+                    <p className="text-xs text-stone-500">Supportive self-talk matters</p>
+                  </div>
+                </div>
+                <p className="text-sm leading-6 text-stone-600">
+                  Self-talk has a powerful influence on how individuals feel about themselves.
+                  Negative or critical thoughts can reinforce low self-esteem and body dissatisfaction.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">
+                  This section helps users develop awareness of their internal dialogue:
+                </p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Identify negative thoughts without immediately accepting them as truth</li>
+                  <li>Question the thought: “Is this helpful or fair?”</li>
+                  <li>Replace harsh language with neutral or kind alternatives</li>
+                  <li>Practice affirmations to reinforce positive beliefs</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#EFD4CA] p-4 shadow-sm">
+                <p className="mb-2 text-sm font-semibold text-[#5a3e36]">Example transformation:</p>
+                <p className="text-sm text-stone-700">
+                  “I hate my body” → “I am learning to treat my body with more respect”
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#5a3e36] p-4 text-white shadow-sm">
+                <p className="text-sm leading-6">
+                  Developing kinder self-talk takes time, but small changes can significantly improve overall wellbeing.
+                </p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (subPage === "nutrition") {
+      return (
+        <InfoPage
+          title="Nutrition"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <h2 className="text-lg font-semibold text-[#5a3e36]">Fuel your body, support your mood</h2>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  Nutrition plays an essential role in both physical health and emotional wellbeing. Regular and balanced eating helps maintain stable energy levels, concentration, and mood throughout the day.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">
+                  Irregular eating patterns, skipping meals, or restrictive behaviours can lead to:
+                </p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Low energy levels</li>
+                  <li>Difficulty concentrating</li>
+                  <li>Increased irritability or mood swings</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#EFD4CA] p-4 shadow-sm">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">
+                  This section encourages a non-restrictive, supportive approach to food:
+                </p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Aim to eat regular meals and snacks</li>
+                  <li>Include a variety of foods to support different body functions</li>
+                  <li>Recognise that all foods can have a place in a balanced diet</li>
+                  <li>Understand that food is both fuel and enjoyment</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="text-sm text-stone-700">
+                  Rather than focusing on control or restriction, users are encouraged to notice how food supports how they feel.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="mb-2 text-sm font-semibold text-[#5a3e36]">Cognitive reframe example:</p>
+                <p className="text-sm text-stone-700">
+                  Instead of → “I shouldn’t have eaten that”
+                  <br />
+                  Try → “That helped give my body energy and satisfaction”
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#5a3e36] p-4 text-white shadow-sm">
+                <p className="text-sm leading-6">This approach supports both physical health and emotional wellbeing.</p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (subPage === "activity") {
+      return (
+        <InfoPage
+          title="Physical Activity"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <h2 className="text-lg font-semibold text-[#5a3e36]">Move for how it feels, not how it looks</h2>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  Physical activity is important for both physical and mental wellbeing, but it should not be associated with punishment or changing appearance. Instead, movement should be framed as a way to support mood, energy, and overall health.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">Benefits of movement include:</p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Improved mood through release of endorphins</li>
+                  <li>Increased energy levels</li>
+                  <li>Reduced stress and anxiety</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#EFD4CA] p-4 shadow-sm">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">This section promotes:</p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Choosing activities that feel enjoyable and manageable</li>
+                  <li>Recognising that short durations (5–10 minutes) are still beneficial</li>
+                  <li>Allowing for rest and recovery</li>
+                  <li>Paying attention to how the body feels during and after movement</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#5a3e36] p-4 text-white shadow-sm">
+                <p className="text-sm leading-6">
+                  This approach helps users build a positive and sustainable relationship with physical activity.
+                </p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (subPage === "quickHelp") {
+      return (
+        <InfoPage
+          title="Need something right now?"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <p className="text-sm text-stone-600">
+                This section provides immediate, simple strategies to help regulate emotions in moments of stress, anxiety, or overwhelm. These techniques are designed to be quick, accessible, and non-judgemental.
+              </p>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>
+                    <strong>Breathing exercise:</strong> Slow breathing (in for 4 seconds, out for 4 seconds) helps calm the nervous system and reduce stress responses.
+                  </li>
+                  <li>
+                    <strong>Hydration or nourishment:</strong> Drinking water or eating a small snack can stabilise energy levels and improve mood.
+                  </li>
+                  <li>
+                    <strong>Change of environment:</strong> Moving to a different space, stepping outside, or getting fresh air can help interrupt negative thought patterns.
+                  </li>
+                  <li>
+                    <strong>Emotional expression:</strong> Writing down thoughts or feelings allows users to process emotions without judgement.
+                  </li>
+                  <li>
+                    <strong>Grounding reminder:</strong> Statements such as “This feeling will pass” help reduce the intensity of temporary emotions.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#5a3e36] p-4 text-white shadow-sm">
+                <p className="text-sm leading-6">
+                  These strategies are intentionally small and achievable to reduce pressure and encourage self-compassion during difficult moments.
+                </p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (subPage === "why") {
+      return (
+        <InfoPage
+          title="Why?"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="text-sm leading-6 text-stone-600">
+                  Body image plays a significant role in overall wellbeing, influencing confidence, mental health, and daily behaviours. Negative body image can lead to harmful patterns such as restrictive eating, avoidance of physical activity, or constant comparison to others.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="text-sm leading-6 text-stone-600">
+                  External influences such as social media, peer pressure, and unrealistic beauty standards can contribute to dissatisfaction and distorted perceptions of the body. Understanding these influences helps users recognise that these pressures are often unrealistic and not reflective of real life.
+                </p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (subPage === "what") {
+      return (
+        <InfoPage
+          title="What is body image?"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <p className="text-sm text-stone-600">
+                Body image refers to how a person thinks, feels, and behaves in relation to their body. It is not only about appearance, but also about how individuals perceive their body’s abilities, strength, and function.
+              </p>
+
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">
+                  A positive or healthy body image does not mean loving how you look all the time. Instead, it involves:
+                </p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Treating your body with respect</li>
+                  <li>Accepting natural changes</li>
+                  <li>Recognising your body’s abilities</li>
+                  <li>Reducing self-criticism</li>
+                </ul>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (subPage === "how") {
+      return (
+        <InfoPage
+          title="How can body image be improved?"
+          onBack={() => setSubPage(null)}
+          body={
+            <>
+              <p className="text-sm text-stone-600">
+                Improving body image is a gradual process that involves shifting focus from appearance to function and self-care.
+              </p>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">Strategies include:</p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Focusing on what the body can do (e.g. moving, learning, recovering)</li>
+                  <li>Eating regularly to support physical and mental functioning</li>
+                  <li>Engaging in enjoyable movement rather than exercise for punishment</li>
+                  <li>Challenging negative self-talk and replacing it with more balanced thoughts</li>
+                  <li>Reducing exposure to harmful or unrealistic online content</li>
+                </ul>
+              </div>
+              <div className="rounded-[18px] bg-[#5a3e36] p-4 text-white shadow-sm">
+                <p className="text-sm leading-6">
+                  These strategies aim to build a more sustainable and compassionate relationship with the body.
+                </p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (tab === "home") return HomeScreen();
+    if (tab === "track") return TrackScreen();
+    if (tab === "journal") return JournalScreen();
+
+    if (accountPage === "reportProblem") {
+      return (
+        <InfoPage
+          title="Report a problem"
+          onBack={() => setAccountPage("settings")}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="text-lg font-semibold">Tell us what went wrong</p>
+                <p className="mt-2 text-sm text-stone-600">
+                  This page would help users explain bugs, loading issues, missing features, or anything in the app that is not working as expected.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">Common reasons someone might report a problem:</p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>The journal did not save properly</li>
+                  <li>The daily check-in did not reset</li>
+                  <li>A button or page is not opening</li>
+                  <li>The app feels slow or freezes</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#EFD4CA] p-4 shadow-sm">
+                <p className="text-sm text-stone-700">
+                  In a full version, this section would include a message box, screenshot upload option, and a submit button so users could clearly describe the issue.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="mb-2 text-sm font-semibold text-[#5a3e36]">Describe your issue:</p>
+                <textarea
+                  placeholder="Write what happened..."
+                  className="w-full min-h-[120px] resize-none rounded-[12px] border border-[#EFD4CA] bg-[#F4EBE2] p-3 text-sm outline-none placeholder:text-[#5a3e36]/60"
+                />
+                <button
+                  className="mt-3 w-full rounded-xl bg-[#5a3e36] py-2 text-white transition active:scale-95"
+                  type="button"
+                >
+                  Submit report
+                </button>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (accountPage === "accountStatus") {
+      return (
+        <InfoPage
+          title="Account status"
+          onBack={() => setAccountPage("settings")}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="text-lg font-semibold">Your account overview</p>
+                <p className="mt-2 text-sm text-stone-600">
+                  This page would show whether the account is active and whether there are any concerns that need attention.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow text-sm text-stone-700">
+                <p><span className="font-semibold text-[#5a3e36]">Status:</span> Active</p>
+                <p className="mt-2"><span className="font-semibold text-[#5a3e36]">Login:</span> Signed in successfully</p>
+                <p className="mt-2"><span className="font-semibold text-[#5a3e36]">Current access:</span> Journal, track, resources, and account tools available</p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#5a3e36] p-4 text-white shadow-sm">
+                <p className="text-sm leading-6">
+                  For this prototype, the account is working normally. In a full app, this page could also show warnings, restrictions, or verification notices.
+                </p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (accountPage === "reportsViolations") {
+      return (
+        <InfoPage
+          title="Reports and violations"
+          onBack={() => setAccountPage("settings")}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="text-lg font-semibold">Reports overview</p>
+                <p className="mt-2 text-sm text-stone-600">
+                  This page would collect any reports, flagged activity, or account notices in one place so users can review them clearly.
+                </p>
+              </div>
+
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <p className="mb-3 text-sm font-semibold text-[#5a3e36]">What this section could include:</p>
+                <ul className="ml-5 list-disc space-y-2 text-sm text-stone-700">
+                  <li>Reports made by the user about app issues</li>
+                  <li>Warnings about account misuse or unusual activity</li>
+                  <li>Updates on reviewed reports or resolved concerns</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[18px] bg-[#EFD4CA] p-4 shadow-sm text-sm text-stone-700">
+                <p className="font-semibold text-[#5a3e36]">Current status</p>
+                <p className="mt-1">No reports or violations are currently listed for this account.</p>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (accountPage === "journalInsights") {
+      return <InfoPage title="Journal insights" onBack={() => setAccountPage("settings")} body={<div className="space-y-2 text-sm text-stone-700"><p>Current streak: {streakCount} day{streakCount === 1 ? "" : "s"}</p><p>Today’s check-in: {submitted ? "Completed" : "Not completed yet"}</p><p>Journal today: {journalSubmitted ? "Completed" : "Not completed yet"}</p></div>} />;
+    }
+
+    if (accountPage === "changePassword") {
+      return <InfoPage title="Change password" onBack={() => setAccountPage("security")} body={<p className="text-sm text-stone-700">This page would let a user update their password in the full app.</p>} />;
+    }
+
+    if (accountPage === "twoFactor") {
+      return <InfoPage title="Two-factor authentication" onBack={() => setAccountPage("security")} body={<p className="text-sm text-stone-700">This page would explain how to add an extra layer of sign-in protection.</p>} />;
+    }
+
+    if (accountPage === "verificationSelfie") {
+      return <InfoPage title="Verification selfie" onBack={() => setAccountPage("security")} body={<p className="text-sm text-stone-700">This page would explain identity verification steps if extra security was needed.</p>} />;
+    }
+
+    if (accountPage === "savedLogin") {
+      return <InfoPage title="Saved login" onBack={() => setAccountPage("security")} body={<p className="text-sm text-stone-700">This page would control whether this device remembers login details for quicker access.</p>} />;
+    }
+
+    if (accountPage === "loggedInDevices") {
+      return <InfoPage title="Where you're logged in" onBack={() => setAccountPage("security")} body={<p className="text-sm text-stone-700">This page would list devices currently signed in to the account.</p>} />;
+    }
+
+    if (accountPage === "recentEmails") {
+      return <InfoPage title="Recent emails" onBack={() => setAccountPage("security")} body={<p className="text-sm text-stone-700">This page would show recent account-related emails like alerts and security updates.</p>} />;
+    }
+
+    if (accountPage === "securityCheckup") {
+      return <InfoPage title="Security checkup" onBack={() => setAccountPage("security")} body={<p className="text-sm text-stone-700">This page would guide users through a quick review of password, login activity, and account safety.</p>} />;
+    }
+        if (accountPage === "favourites") {
+      return (
+        <InfoPage
+          title="My favourites"
+          onBack={() => setAccountPage(null)}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="text-lg font-semibold">Saved quotes and supports</p>
+                <p className="mt-2 text-sm text-stone-600">
+                  This page would hold a user’s favourite affirmations, calming reminders, and helpful resources they want to come back to.
+                </p>
+              </div>
+              <div className="space-y-3">
+                {[
+                  "My worth is not measured by my appearance.",
+                  "Food is fuel and also enjoyment — both matter.",
+                  "Small steps still count.",
+                ].map((quote) => (
+                  <div key={quote} className="rounded-[16px] bg-[#FFFCF8] p-4 shadow">
+                    <p className="text-sm text-stone-700">{quote}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (accountPage === "history") {
+      return (
+        <InfoPage
+          title="My history"
+          onBack={() => setAccountPage(null)}
+          body={
+            <>
+              <div className="rounded-[18px] bg-[#F8F1EB] p-4 shadow-sm">
+                <p className="text-lg font-semibold">Your recent activity</p>
+                <p className="mt-2 text-sm text-stone-600">
+                  This section shows how often you have checked in, journalled, and returned to the app.
+                </p>
+              </div>
+              <div className="rounded-[18px] bg-[#FFFCF8] p-4 shadow">
+                <div className="space-y-3 text-sm text-stone-700">
+                  <p>• Current streak: {streakCount} day{streakCount === 1 ? "" : "s"}</p>
+                  <p>• Today’s check-in: {submitted ? "Completed" : "Not completed yet"}</p>
+                  <p>• Journal today: {journalSubmitted ? "Completed" : "Not completed yet"}</p>
+                </div>
+              </div>
+            </>
+          }
+        />
+      );
+    }
+
+    if (accountPage === "editProfile") {
+      return (
+        <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+          <BackgroundBlobs />
+          <div className="relative z-10 text-[#5a3e36]">
+            <div className="border-b border-white/30 bg-[#EFD4CA] px-4 pb-4 pt-4">
+              <div className="mb-2 flex items-center justify-between text-[11px] font-medium">
+                <span>10:17</span>
+                <div className="flex items-center gap-2">
+                  <span>5G</span>
+                  <span>55</span>
+                </div>
+              </div>
+              <div className="relative flex items-center justify-center py-3">
+                <button onClick={() => setAccountPage(null)} className="absolute left-0 text-3xl leading-none text-[#5a3e36]" type="button">
+                  ‹
+                </button>
+                <h1 className="text-2xl font-semibold">Edit profile</h1>
+              </div>
+            </div>
+
+            <div className="px-0 py-0">
+              <div className="border-b border-white/30 bg-[#F4EBE2]/90 px-6 py-8 text-center">
+                <div className="mx-auto flex items-center justify-center gap-8">
+                  <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full bg-[#d9c5bb] text-4xl font-semibold text-white shadow-sm">
+                    {topImage ? (
+                      <img src={topImage} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      userName ? userName.charAt(0).toUpperCase() : "U"
+                    )}
+                  </div>
+                  <div className="flex h-32 w-32 items-center justify-center rounded-full border-2 border-[#E7D8D0] bg-[#FFFCF8] text-4xl shadow-sm">
+                    👤
+                  </div>
+                </div>
+                <label className="mt-5 inline-block cursor-pointer text-lg font-medium text-[#5a3e36] underline underline-offset-4">
+                  Edit picture or avatar
+                  <input type="file" accept="image/*" onChange={(e) => handleUpload(e, "top")} className="hidden" />
+                </label>
+              </div>
+
+              <div className="bg-[#FFFCF8]/95 px-6 py-2 text-[17px] shadow-sm">
+                {[
+                  { label: "Name", value: userName || "Annie" },
+                  { label: "Username", value: userName || "annabelwoodd" },
+                  { label: "Pronouns", value: "Pronouns", muted: true },
+                  { label: "Email", value: emailInput || "name@email.com" },
+                ].map((field) => (
+                  <div key={field.label} className="grid grid-cols-[110px_1fr] items-center border-b border-[#EADDD6] py-5 last:border-b-0">
+                    <p className="text-[17px] text-[#5a3e36]">{field.label}</p>
+                    <p className={`text-[17px] ${field.muted ? "text-[#9A8A83]" : "text-[#5a3e36]"}`}>{field.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (accountPage === "settings") {
+      return (
+        <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+          <BackgroundBlobs />
+          <div className="relative z-10 text-[#5a3e36]">
+            <div className="border-b border-white/30 bg-[#EFD4CA] px-4 pb-4 pt-4">
+              <div className="mb-2 flex items-center justify-between text-[11px] font-medium">
+                <span>10:19</span>
+                <div className="flex items-center gap-2">
+                  <span>5G</span>
+                  <span>55</span>
+                </div>
+              </div>
+              <div className="relative flex items-center justify-center py-3">
+                <button onClick={() => setAccountPage(null)} className="absolute left-0 text-3xl leading-none text-[#5a3e36]" type="button">
+                  ‹
+                </button>
+                <h1 className="text-2xl font-semibold">Help and support</h1>
+              </div>
+            </div>
+
+            <div className="px-5 py-5">
+              <div className="mb-6 rounded-2xl bg-[#F4EBE2] px-4 py-4 text-lg text-[#8b7b73] shadow-sm">Search help articles</div>
+
+              <div className="mb-8 text-center">
+                <div className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full bg-[#FFFCF8] shadow-sm text-5xl">🛟</div>
+                <h2 className="text-3xl font-semibold">Help and support</h2>
+              </div>
+
+              <div className="space-y-2">
+                {[
+                  { title: "Report a problem", subtitle: "Tell us if something is not working right", action: () => setAccountPage("reportProblem") },
+                  { title: "Account status", subtitle: "Review your current account status", action: () => setAccountPage("accountStatus") },
+                  { title: "Password and security", subtitle: "Manage your password and login safety", action: () => setAccountPage("security") },
+                  { title: "Reports and violations", subtitle: "Review reports, flags and requests", action: () => setAccountPage("reportsViolations") },
+                  { title: "View insights on your journal and check-ins", subtitle: "See how you are using the app", action: () => setAccountPage("journalInsights") },
+                ].map((item) => (
+                  <button key={item.title} onClick={item.action} className="flex w-full items-center justify-between rounded-2xl bg-[#FFFCF8] px-4 py-4 text-left shadow-sm transition active:scale-[0.99]" type="button">
+                    <div>
+                      <p className="text-[17px] font-medium text-[#5a3e36]">{item.title}</p>
+                      <p className="mt-1 text-sm leading-5 text-[#8b7b73]">{item.subtitle}</p>
+                    </div>
+                    <span className="text-3xl leading-none text-[#b09a90]">›</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (accountPage === "security") {
+      return (
+        <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+          <BackgroundBlobs />
+          <div className="relative z-10 text-[#5a3e36]">
+            <div className="bg-[#EFD4CA] px-4 pb-4 pt-4 border-b border-white/30">
+              <div className="mb-2 flex items-center justify-between text-[11px] font-medium">
+                <span>10:19</span>
+                <div className="flex items-center gap-2">
+                  <span>5G</span>
+                  <span>55</span>
+                </div>
+              </div>
+              <div className="relative flex items-center py-3">
+                <button onClick={() => setAccountPage("settings")} className="absolute left-0 text-3xl leading-none text-[#5a3e36]" type="button">
+                  ‹
+                </button>
+              </div>
+            </div>
+
+            <div className="px-5 pb-10 pt-2">
+              <h1 className="text-3xl font-semibold">Password and security</h1>
+
+              <div className="mt-8">
+                <h2 className="text-2xl font-semibold">Login & recovery</h2>
+                <p className="mt-2 text-base leading-7 text-[#8b7b73]">
+                  Manage your passwords, login preferences and recovery methods.
+                </p>
+                <div className="mt-5 overflow-hidden rounded-[24px] border border-[#E7D8D0] bg-[#FFFCF8] shadow-sm">
+                  {[
+                    { label: "Change password", page: "changePassword" as const },
+                    { label: "Two-factor authentication", page: "twoFactor" as const },
+                    { label: "Verification selfie", page: "verificationSelfie" as const },
+                    { label: "Saved login", page: "savedLogin" as const },
+                  ].map((item, index) => (
+                    <button key={item.label} onClick={() => setAccountPage(item.page)} className={`flex w-full items-center justify-between px-6 py-5 text-left text-[17px] ${index !== 3 ? "border-b border-[#EADDD6]" : ""}`} type="button"><span>{item.label}</span>
+                      <span className="text-3xl leading-none text-[#b09a90]">›</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-10">
+                <h2 className="text-2xl font-semibold">Security checks</h2>
+                <p className="mt-2 text-base leading-7 text-[#8b7b73]">
+                  Review security issues by running checks across apps, devices and emails sent.
+                </p>
+                <div className="mt-5 overflow-hidden rounded-[24px] border border-[#E7D8D0] bg-[#FFFCF8] shadow-sm">
+                  {[
+                    { label: "Where you're logged in", page: "loggedInDevices" as const },
+                    { label: "Recent emails", page: "recentEmails" as const },
+                    { label: "Security Checkup", page: "securityCheckup" as const },
+                  ].map((item, index) => (
+                    <button key={item.label} onClick={() => setAccountPage(item.page)} className={`flex w-full items-center justify-between px-6 py-5 text-left text-[17px] ${index !== 2 ? "border-b border-[#EADDD6]" : ""}`} type="button"><span>{item.label}</span>
+                      <span className="text-3xl leading-none text-[#b09a90]">›</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (tab === "account") {
+      return (
+        <div className="relative overflow-hidden rounded-[26px] pb-24 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+          <BackgroundBlobs />
+          <div className="relative z-10 text-[#5a3e36]">
+            <div className="bg-[#EFD4CA] px-4 pb-4 pt-4 border-b border-white/30">
+              <div className="mb-2 flex items-center justify-between text-[11px] font-medium">
+                <span>9:41</span>
+                <div className="flex items-center gap-2">
+                  <span>5G</span>
+                  <span>55</span>
+                </div>
+              </div>
+              <div className="py-3 text-center">
+                <h1 className="text-[2rem] font-semibold">Profile</h1>
+              </div>
+            </div>
+
+            <div className="space-y-4 px-4 py-5">
+              <div className="rounded-[24px] bg-[#FFFCF8] p-4 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#d9c5bb] text-2xl font-semibold text-white">
+                    {topImage ? (
+                      <img src={topImage} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      userName ? userName.charAt(0).toUpperCase() : "U"
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">{userName || "Your profile"}</h2>
+                    <p className="text-sm text-[#8b7b73]">{emailInput || "your@email.com"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[24px] bg-[#FFFCF8] shadow-sm">
+                {[
+                  { icon: "♡", title: "My favourites", subtitle: "Saved quotes and resources", page: "favourites" as const },
+                  { icon: "🕘", title: "My history", subtitle: "Check-ins and journal activity", page: "history" as const },
+                  { icon: "✎", title: "Edit profile", subtitle: "Change your name, photo or avatar", page: "editProfile" as const },
+                  { icon: "❓", title: "Help and support", subtitle: "Support articles and account help", page: "settings" as const },
+                  { icon: "🔒", title: "Password and security", subtitle: "Password and account safety", page: "security" as const },
+                ].map((item, index) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    onClick={() => setAccountPage(item.page)}
+                    className={`flex w-full items-center justify-between px-4 py-4 text-left transition active:scale-[0.99] ${index !== 4 ? "border-b border-[#EADDD6]" : ""}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#F4EBE2] text-lg text-[#5a3e36]">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <p className="text-[16px] font-medium text-[#5a3e36]">{item.title}</p>
+                        <p className="text-sm text-[#8b7b73]">{item.subtitle}</p>
+                      </div>
+                    </div>
+                    <span className="text-3xl leading-none text-[#b09a90]">›</span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full rounded-2xl bg-[#5a3e36] px-4 py-4 text-white shadow-sm transition active:scale-95"
+                type="button"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return SupportScreen();
+  };
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-[#E2E6ED] px-4 py-6 text-stone-700">
+        <div className="relative mx-auto max-w-[390px]">
+          {SignInScreen()}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#E2E6ED] px-4 py-6 text-stone-700">
+      <div className="relative mx-auto max-w-[390px]">
+        {renderScreen()}
+        <div className="absolute bottom-0 left-0 right-0">
+          <div className="bg-[#EFD4CA] px-3 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
+            <div className="grid grid-cols-5 text-center text-[#5a3e36]">
+              <button
+                onClick={() => openMainTab("home")}
+                className="flex flex-col items-center gap-1 transition active:scale-95"
+                type="button"
+              >
+                <HomeIcon />
+                <div className="text-[14px]">Home</div>
+              </button>
+              <button
+                onClick={() => openMainTab("track")}
+                className="flex flex-col items-center gap-1 transition active:scale-95"
+                type="button"
+              >
+                <TrackIcon />
+                <div className="text-[14px]">Track</div>
+              </button>
+              <button
+                onClick={() => openMainTab("journal")}
+                className="flex flex-col items-center gap-1 transition active:scale-95"
+                type="button"
+              >
+                <JournalIcon />
+                <div className="text-[14px]">Journal</div>
+              </button>
+              <button
+                onClick={() => openMainTab("account")}
+                className="flex flex-col items-center gap-1 transition active:scale-95"
+                type="button"
+              >
+                <AccountIcon />
+                <div className="text-[14px]">Account</div>
+              </button>
+              <button
+                onClick={() => openMainTab("support")}
+                className="flex flex-col items-center gap-1 transition active:scale-95"
+                type="button"
+              >
+                <ResourcesIcon />
+                <div className="text-[14px]">Resources</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
